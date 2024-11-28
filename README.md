@@ -23,13 +23,13 @@ This is my final project for Predicting Temperature Changes of the US, which wil
             national_year = pd.read_csv("climdiv_national_year.csv")  # National data
             state_year = pd.read_csv("climdiv_state_year.csv")  # State data
             county_year = pd.read_csv("climdiv_county_year.csv")  # County data
-            
+    
             # Remove commas from 'year' and convert 'year' to integer type
-            national_year['year'] = pd.to_numeric(national_year['year'].astype(str).str.replace(",", ""))
-            state_year['year'] = pd.to_numeric(state_year['year'].astype(str).str.replace(",", ""))
-            county_year['year'] = pd.to_numeric(county_year['year'].astype(str).str.replace(",", ""))
-            
-            # Convert 'year' to datetime
+            national_year['year'] = national_year['year'].astype(str).str.replace(',', '').astype(int)
+            state_year['year'] = state_year['year'].astype(str).str.replace(',', '').astype(int)
+            county_year['year'] = county_year['year'].astype(str).str.replace(',', '').astype(int)
+    
+            # Optionally convert 'year' to datetime if needed
             national_year['year'] = pd.to_datetime(national_year['year'], format='%Y')
             state_year['year'] = pd.to_datetime(state_year['year'], format='%Y')
             county_year['year'] = pd.to_datetime(county_year['year'], format='%Y')
@@ -37,7 +37,7 @@ This is my final project for Predicting Temperature Changes of the US, which wil
             # Format FIPS codes
             state_year['fips'] = state_year['fips'].astype(str).str.zfill(2)  # 2 digits for states
             county_year['fips'] = county_year['fips'].astype(str).str.zfill(5)  # 5 digits for counties
-            
+    
             return national_year, state_year, county_year
         except Exception as e:
             st.error(f"Error loading CSV files: {e}")
@@ -109,7 +109,7 @@ This is my final project for Predicting Temperature Changes of the US, which wil
             county_data['fips'] = county_data['fips'].astype(str).str.zfill(5)
     
             # Extract FIPS codes from GeoJSON
-            geo_fips = {feature["properties"]["GEOID"] for feature in counties_geojson["features"]}
+            geo_fips = {feature['properties']['GEOID'] for feature in counties_geojson['features']}
     
             # Check for missing FIPS codes
             missing_fips = set(county_data['fips']) - geo_fips
@@ -129,18 +129,15 @@ This is my final project for Predicting Temperature Changes of the US, which wil
                 geojson=counties_geojson,
                 locations='fips',
                 color='tempc',
-                color_continuous_scale='thermal',
+                color_continuous_scale="thermal",
                 range_color=(county_data['tempc'].min(), county_data['tempc'].max()),
-                mapbox_style='carto-positron',
+                mapbox_style="carto-positron",
                 featureidkey="properties.GEOID",
                 zoom=4,
                 center={"lat": 37.8, "lon": -96},
                 opacity=0.7,
-                labels={'tempc': 'Temperature (°C)'}
+                labels={'tempc': "Temperature (°C)"}
             )
-    
-            # Highlight missing data with white borders
-            fig.update_traces(marker_line_color="white", selector=dict(type="choropleth"))
     
             # Display map
             st.plotly_chart(fig, use_container_width=True)
@@ -152,6 +149,7 @@ This is my final project for Predicting Temperature Changes of the US, which wil
             st.sidebar.write(f"Average Temperature (°C): {national_avg_temp_c:.2f}")
     
         elif page == "Prediction with LSTM":
+            # Display prediction section
             st.subheader("Temperature Prediction with LSTM Model")
     
             # Add buttons to choose dataset
@@ -162,11 +160,11 @@ This is my final project for Predicting Temperature Changes of the US, which wil
             if st.button("County"):
                 st.session_state.selected_dataset = county_year
                 st.write("Using County Data")
-    
+                
             # If dataset is selected, let the user pick FIPS code
             if st.session_state.selected_dataset is not None:
                 data = st.session_state.selected_dataset
-                fips_column = "fips"
+                fips_column = 'fips'
                 counties = sorted(data[fips_column].unique())
                 selected_fips = st.selectbox("Select a FIPS code", counties)
     
@@ -184,8 +182,8 @@ This is my final project for Predicting Temperature Changes of the US, which wil
                 st.line_chart(filtered_data_copy['tempc'])
     
                 # Train button
-                if st.button('Train Model'):
-                    st.write("Training the model...")
+                if st.button('Predict Model'):
+                    st.write("Predicting the model...")
     
                     # Prepare temperature data
                     temp_data = filtered_data_copy[['tempc']].values
@@ -195,7 +193,7 @@ This is my final project for Predicting Temperature Changes of the US, which wil
                     scaled_data = scaler.fit_transform(temp_data)
     
                     # Prepare the data for LSTM
-                    sequence_length = 30  # Number of time steps for sequence
+                    sequence_length = 45  # Number of time steps for sequence
                     X, Y = create_sequences(scaled_data, sequence_length)
     
                     # Split the data
@@ -210,7 +208,7 @@ This is my final project for Predicting Temperature Changes of the US, which wil
                     scaler_path = 'scaler.pkl'
     
                     # Train or load model
-                    model, _ = load_trained_model_and_scaler(model_path, scaler_path)
+                    model, scaler = load_trained_model_and_scaler(model_path, scaler_path)
                     if model is None:
                         st.write("Training a new model...")
                         model = Sequential()
@@ -233,105 +231,19 @@ This is my final project for Predicting Temperature Changes of the US, which wil
                     rmse = mean_squared_error(Y_test, predicted_temp, squared=False)
                     mape = mean_absolute_percentage_error(Y_test, predicted_temp)
     
-                    st.write("### Model Evaluation")
+                    st.write(f"**Model Evaluation**")
                     st.write(f"MSE: {mse}")
                     st.write(f"MAE: {mae}")
-                    st.write(f"RMSE: {rmse}")
+                    st.write(f'RMSE: {rmse}')
                     st.write(f"MAPE: {mape}")
     
                     # Plot prediction results
                     st.subheader("Predicted vs Actual Temperature")
-                    st.line_chart(pd.DataFrame({
+                    results_df = pd.DataFrame({
                         'Actual Temperature': Y_test.flatten(),
                         'Predicted Temperature': predicted_temp.flatten()
-                    }))
-    
-                # Future prediction button
-                if st.button("Predict Model"):
-                    st.subheader("Predict Future Temperatures")
-                    
-                    # Ensure filtered data is available
-                    if st.session_state.filtered_data is None:
-                        st.error("Please select a dataset and FIPS code first.")
-                    else:
-                        # Prepare temperature data
-                        filtered_data = st.session_state.filtered_data
-                        filtered_data_copy = filtered_data[['year', 'tempc']].copy()
-                        filtered_data_copy['year'] = pd.to_datetime(filtered_data_copy['year'], format='%Y')
-                        filtered_data_copy.set_index('year', inplace=True)
-                        
-                        temp_data = filtered_data_copy[['tempc']].values
-    
-                        # Scale the data
-                        scaler = MinMaxScaler(feature_range=(0, 1))
-                        scaled_data = scaler.fit_transform(temp_data)
-    
-                        # Ensure model and scaler are available
-                        model_path = 'temperature_prediction_model.keras'
-                        scaler_path = 'scaler.pkl'
-                        model, _ = load_trained_model_and_scaler(model_path, scaler_path)
-    
-                        if model is None:
-                            st.error("Model is not trained. Please train the model first.")
-                        else:
-                            # Select the number of years to predict
-                            prediction_years = st.number_input("Number of years to predict", min_value=1, max_value=10, value=5, step=1)
-                            st.write(f"Predicting temperatures for the next {prediction_years} years...")
-    
-                            # Generate future predictions
-                            sequence_length = 30
-                            last_sequence = scaled_data[-sequence_length:]  # Take the last sequence of data for prediction
-                            last_sequence = np.reshape(last_sequence, (1, sequence_length, 1))
-                            future_predictions = []
-    
-                            for _ in range(prediction_years):
-                                predicted_value = model.predict(last_sequence)[0][0]
-                                future_predictions.append(predicted_value)
-    
-                                # Update the sequence for the next prediction
-                                new_sequence = np.append(last_sequence[:, 1:, :], [[[predicted_value]]], axis=1)
-                                last_sequence = new_sequence
-    
-                            # Rescale predictions back to the original temperature range
-                            future_predictions = scaler.inverse_transform(np.array(future_predictions).reshape(-1, 1)).flatten()
-    
-                            # Create a new DataFrame for future predictions
-                            last_year = filtered_data_copy.index.max().year
-                            future_dates = pd.date_range(start=f"{last_year+1}", periods=prediction_years, freq='Y')
-                            future_df = pd.DataFrame({"year": future_dates, "Predicted Temperature": future_predictions}).set_index('year')
-    
-                            # Combine actual and predicted data
-                            combined_df = pd.concat([filtered_data_copy[['tempc']].rename(columns={"tempc": "Actual Temperature"}), future_df], axis=0)
-    
-                            # Display prediction metrics (Optional: Add metrics for validation data if needed)
-                            st.write("### Prediction Metrics")
-                            mse_pred = mean_squared_error(Y_test.flatten(), predicted_temp.flatten())
-                            mae_pred = mean_absolute_error(Y_test.flatten(), predicted_temp.flatten())
-                            rmse_pred = mean_squared_error(Y_test.flatten(), predicted_temp.flatten(), squared=False)
-                            mape_pred = mean_absolute_percentage_error(Y_test.flatten(), predicted_temp.flatten())
-    
-                            st.write(f"MSE: {mse_pred}")
-                            st.write(f"MAE: {mae_pred}")
-                            st.write(f"RMSE: {rmse_pred}")
-                            st.write(f"MAPE: {mape_pred}")
-    
-                            # Plot the combined data with future predictions
-                            st.subheader("Actual and Predicted Temperatures")
-                            fig, ax = plt.subplots(figsize=(10, 6))
-    
-                            # Plot actual temperatures
-                            ax.plot(combined_df.index, combined_df["Actual Temperature"], label="Actual Temperature", color="blue")
-    
-                            # Plot predicted future temperatures
-                            ax.plot(future_df.index, future_df["Predicted Temperature"], label="Predicted Temperature", color="orange", linestyle="--")
-    
-                            # Add titles and labels
-                            ax.set_title("Actual and Predicted Temperatures", fontsize=16)
-                            ax.set_xlabel("Year", fontsize=14)
-                            ax.set_ylabel("Temperature (°C)", fontsize=14)
-                            ax.legend()
-    
-                            st.pyplot(fig)
+                    })
+                    st.line_chart(results_df)
     
     if __name__ == "__main__":
         main()
