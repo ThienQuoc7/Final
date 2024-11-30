@@ -15,6 +15,9 @@ This is my final project for Predicting Temperature Changes of the US, which wil
     from sklearn.metrics import mean_squared_error, mean_absolute_error, mean_absolute_percentage_error
     import plotly.express as px
     import json
+    import plotly.graph_objects as go 
+    import plotly.express as px
+    
     
     # Function to load datasets
     @st.cache_resource
@@ -236,14 +239,44 @@ This is my final project for Predicting Temperature Changes of the US, which wil
                     st.write(f"MAE: {mae}")
                     st.write(f'RMSE: {rmse}')
                     st.write(f"MAPE: {mape}")
-    
-                    # Plot prediction results
+                    
+                    # Plot prediction results with specific color for predicted temperature
                     st.subheader("Predicted vs Actual Temperature")
+    
+                    # Prepare DataFrame for actual and predicted temperatures
                     results_df = pd.DataFrame({
                         'Actual Temperature': Y_test.flatten(),
                         'Predicted Temperature': predicted_temp.flatten()
                     })
-                    st.line_chart(results_df)
+    
+                    # Create the Plotly figure
+                    fig = go.Figure()
+    
+                    # Add actual temperature trace (default color)
+                    fig.add_trace(go.Scatter(
+                        x=results_df.index,
+                        y=results_df['Actual Temperature'],
+                        mode='lines',
+                        name='Actual Temperature', 
+                    ))
+    
+                    # Add predicted temperature trace with coral color
+                    fig.add_trace(go.Scatter(
+                        x=results_df.index,
+                        y=results_df['Predicted Temperature'],
+                        mode='lines',
+                        name='Predicted Temperature',
+                        line=dict(color='red')  # Coral color for predicted temperature line
+                    ))
+    
+                    # Customize layout (optional, for better visual distinction)
+                    fig.update_layout(
+                        xaxis_title="Data Points",
+                        yaxis_title="Temperature (°C)",
+                    )
+    
+                    # Show the plot
+                    st.plotly_chart(fig)
     
     if __name__ == "__main__":
         main()
