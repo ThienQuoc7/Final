@@ -1,4 +1,5 @@
-# Final
-This is my final project for Predicting Temperature Changes of the US, which will be represented on Streamlit.
+# Temperature Change Analysis and Prediction using LSTM models.
+This is my Final Project - COMP1682.
 
-# Code
+# Essemtial Packages
+Run file requirements.txt 
