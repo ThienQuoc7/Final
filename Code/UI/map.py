@@ -19,9 +19,9 @@ import plotly.express as px
 @st.cache_resource
 def load_data():
     try:
-        national_year = pd.read_csv("climdiv_national_year.csv")  # National data
-        state_year = pd.read_csv("climdiv_state_year.csv")  # State data
-        county_year = pd.read_csv("climdiv_county_year.csv")  # County data
+        national_year = pd.read_csv("Code/Data/climdiv_national_year.csv")  # National data
+        state_year = pd.read_csv("Code/Data/climdiv_state_year.csv")  # State data
+        county_year = pd.read_csv("Code/Data/climdiv_county_year.csv")  # County data
 
         # Remove commas from 'year' and convert 'year' to integer type
         national_year['year'] = national_year['year'].astype(str).str.replace(',', '').astype(int)
@@ -46,7 +46,7 @@ def load_data():
 @st.cache_resource
 def load_county_geojson():
     try:
-        with open("model_county.geojson", "r") as f:
+        with open("Code/UI/model_county.geojson", "r") as f:
             counties_geojson = json.load(f)
         return counties_geojson
     except Exception as e:
@@ -203,8 +203,8 @@ def main():
                 X_test = np.reshape(X_test, (X_test.shape[0], X_test.shape[1], 1))
 
                 # File paths for saving models and scalers
-                model_path = 'temperature_prediction_model.keras'
-                scaler_path = 'scaler.pkl'
+                model_path = 'Result/temperature_prediction_model.keras'
+                scaler_path = 'Result/scaler.pkl'
 
                 # Train or load model
                 model, scaler = load_trained_model_and_scaler(model_path, scaler_path)
